@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node / Next.js
+node_modules/
+.next/
+
+# Local editor and OS
+.vscode/
+.DS_Store
+
+# Runtime/generated data
+temp_qdrant/
+Medibot_Assignment_Resources/medibot/backend/qdrant_db/
