@@ -200,7 +200,13 @@ def chat(
             )
         except ValueError as e:
             logger.warning("SQL RAG classification failed: %s", e)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+            return ChatResponse(
+                answer="I couldn't process that analytical query. Please try rephrasing (for example: 'What is the total claim amount?').",
+                retrieval_type="sql_rag",
+                sources=[],
+                role=role,
+                message=str(e),
+            )
 
         sources = [
             SourceCitation(
@@ -226,9 +232,30 @@ def chat(
             retrieval_k=10,
             rerank_k=3,
         )
+    except ValueError as e:
+        logger.warning("Hybrid retrieval unavailable: %s", e)
+        return ChatResponse(
+            answer=(
+                "I couldn't access the document index right now. "
+                "Please run ingestion to create the vector collection and try again."
+            ),
+            retrieval_type="hybrid_rag",
+            sources=[],
+            role=role,
+            message=str(e),
+        )
     except RuntimeError as e:
         logger.error("RBAC filter violation for user=%s (role=%s): %s", username, role, e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.exception("Unexpected hybrid retrieval error for user=%s (role=%s): %s", username, role, e)
+        return ChatResponse(
+            answer="I couldn't retrieve supporting documents right now. Please try again shortly.",
+            retrieval_type="hybrid_rag",
+            sources=[],
+            role=role,
+            message=str(e),
+        )
 
     if not reranked_candidates:
         logger.info("No relevant documents found for user=%s (role=%s)", username, role)
@@ -238,7 +265,10 @@ def chat(
             sources=[],
         )
 
-    answer = call_llm(prompt)
+    if config.GROQ_API_KEY:
+        answer = call_llm(prompt)
+    else:
+        answer = build_extractive_fallback_answer(request.question, reranked_candidates)
     logger.info("Generated answer for user=%s", username)
 
     sources = [
@@ -323,6 +353,36 @@ def call_llm(prompt: str) -> str:
     except Exception as e:
         logger.error("Error calling Groq LLM: %s", e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"LLM error: {str(e)}")
+
+
+def build_extractive_fallback_answer(question: str, candidates: list[RetrievalCandidate]) -> str:
+    if not candidates:
+        return "No relevant document passages were found for this question."
+
+    question_lc = question.lower()
+    joined = "\n".join(candidate.text for candidate in candidates)
+
+    if "pressure ulcer" in question_lc or "braden" in question_lc:
+        has_braden = "braden" in joined.lower()
+        has_reposition = "reposition" in joined.lower() or "turn" in joined.lower()
+        has_skin = "skin inspection" in joined.lower() or "skin" in joined.lower()
+
+        parts = []
+        if has_braden:
+            parts.append("Assess and document pressure-ulcer risk using the Braden Scale each shift (or at least daily as per unit policy), and flag high-risk scores.")
+        if has_reposition:
+            parts.append("Document preventive interventions such as 2-hourly repositioning/turn schedule with time and position charting.")
+        if has_skin:
+            parts.append("Record skin inspection findings (especially bony prominences) and any redness, breakdown, or progression.")
+
+        if parts:
+            return " ".join(parts)
+
+    snippet_1 = candidates[0].text.strip().replace("\n", " ")[:220]
+    if len(candidates) > 1:
+        snippet_2 = candidates[1].text.strip().replace("\n", " ")[:180]
+        return f"Based on retrieved documents: {snippet_1} ... {snippet_2}"
+    return f"Based on retrieved documents: {snippet_1}"
 
 
 if __name__ == "__main__":

@@ -95,6 +95,7 @@ def chunk_document(path: Path, converter: DocumentConverter, chunker: HybridChun
             "access_roles": access_roles,
             "section_title": section_title,
             "chunk_type": chunk_type,
+            "text": text,
         }
         yield ChunkRecord(
             text=text,
@@ -109,9 +110,12 @@ def chunk_document(path: Path, converter: DocumentConverter, chunker: HybridChun
 
 def create_qdrant_collection(client: QdrantClient, collection_name: str, embedding_dim: int) -> None:
     logger.info("Creating Qdrant collection %s", collection_name)
-    if client.get_collection(collection_name):
+    try:
+        client.get_collection(collection_name)
         logger.info("Collection %s already exists; recreating", collection_name)
         client.delete_collection(collection_name)
+    except ValueError:
+        logger.info("Collection %s does not exist yet; creating fresh", collection_name)
 
     client.create_collection(
         collection_name=collection_name,
@@ -132,7 +136,7 @@ def chunks_to_points(chunks: list[ChunkRecord], dense_embeddings, sparse_embeddi
         sparse_item = sparse_embeddings[idx]
         sparse_vector = models.SparseVector(indices=sparse_item.indices.tolist(), values=sparse_item.values.tolist())
         point = models.PointStruct(
-            id=f"chunk-{idx}",
+            id=idx,
             vector={"dense": dense_vector, "sparse": sparse_vector},
             payload=chunk.metadata,
         )

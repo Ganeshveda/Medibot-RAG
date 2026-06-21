@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from typing import Any, Iterable, List
 
 from qdrant_client import QdrantClient, models
-from qdrant_client.fastembed_common import QueryResponse
 from sentence_transformers import CrossEncoder
+from sentence_transformers import SentenceTransformer
 
 import config
 
@@ -15,6 +15,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 
 DEFAULT_RETRIEVAL_K = 10
 DEFAULT_RERANK_K = 3
+
+_DENSE_QUERY_MODEL: SentenceTransformer | None = None
 
 
 @dataclass
@@ -41,6 +43,13 @@ def create_qdrant_client() -> QdrantClient:
     )
 
 
+def get_dense_query_model() -> SentenceTransformer:
+    global _DENSE_QUERY_MODEL
+    if _DENSE_QUERY_MODEL is None:
+        _DENSE_QUERY_MODEL = SentenceTransformer(config.DENSE_MODEL_NAME)
+    return _DENSE_QUERY_MODEL
+
+
 def build_role_filter(role: str) -> models.Filter:
     if role not in config.ROLES:
         raise ValueError(f"Unknown role: {role}")
@@ -57,25 +66,29 @@ def hybrid_search(query_text: str, role: str, limit: int = DEFAULT_RETRIEVAL_K) 
     logger.info("Running hybrid Qdrant retrieval for role=%s, limit=%d", role, limit)
     qdrant_client = create_qdrant_client()
     query_filter = build_role_filter(role)
+    query_model = get_dense_query_model()
+    query_vector = query_model.encode(query_text, convert_to_numpy=True).tolist()
 
     try:
-        responses: list[QueryResponse] = qdrant_client.query(
+        response = qdrant_client.query_points(
             collection_name=config.COLLECTION_NAME,
-            query_text=query_text,
+            query=query_vector,
             query_filter=query_filter,
             limit=limit,
+            using="dense",
         )
     finally:
         qdrant_client.close()
 
+    points = response.points
     candidates = [
         RetrievalCandidate(
             id=result.id,
-            text=result.document,
-            metadata=result.metadata,
-            score=result.score,
+            text=str((result.payload or {}).get("text", "")),
+            metadata=dict(result.payload or {}),
+            score=float(result.score),
         )
-        for result in responses
+        for result in points
     ]
 
     _confirm_rbac_filter(candidates, role)

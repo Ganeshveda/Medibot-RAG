@@ -291,6 +291,9 @@ export default function Home() {
                               {source.section_title ? (
                                 <p className="mt-1 text-sm text-slate-300">{source.section_title}</p>
                               ) : null}
+                              {source.text_snippet ? (
+                                <p className="mt-2 whitespace-pre-wrap break-words text-xs text-slate-400">{source.text_snippet}</p>
+                              ) : null}
                             </div>
                           ))}
                         </div>

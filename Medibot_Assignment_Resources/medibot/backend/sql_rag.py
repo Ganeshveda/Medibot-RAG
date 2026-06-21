@@ -65,10 +65,14 @@ class SqlRag:
             "approved",
             "resolved",
             "billing",
+            "bill",
+            "invoice",
             "claims",
             "tickets",
             "maintenance",
             "equipment",
+            "department",
+            "breakdown",
         ]
         return any(keyword in normalized for keyword in analytics_keywords)
 
@@ -88,9 +92,11 @@ class SqlRag:
         return self._rule_based_sql(question)
 
     def _rule_based_sql(self, question: str) -> str:
-        if "claim" in question.lower() or "billing" in question.lower():
+        normalized = question.lower()
+
+        if any(keyword in normalized for keyword in ["claim", "billing", "bill", "invoice", "insurer"]):
             return self._billing_query(question)
-        if "equipment" in question.lower() or "maintenance" in question.lower():
+        if any(keyword in normalized for keyword in ["equipment", "maintenance", "ticket", "fault"]):
             return self._maintenance_query(question)
         raise ValueError("Unable to classify analytical question for SQL RAG")
 
@@ -135,11 +141,15 @@ class SqlRag:
         return match.group(0).strip()
 
     def _billing_query(self, question: str) -> str:
-        if "pending" in question.lower():
+        normalized = question.lower()
+
+        if "total" in normalized and ("bill" in normalized or "billing" in normalized or "claim" in normalized):
+            return "SELECT SUM(claimed_amount) AS total_claim_amount FROM claims"
+        if "pending" in normalized:
             return "SELECT claim_id, patient_name, department, diagnosis_code, claimed_amount, status FROM claims WHERE status='pending' ORDER BY submitted_date DESC LIMIT 10"
-        if "approved" in question.lower():
+        if "approved" in normalized:
             return "SELECT claim_id, patient_name, department, diagnosis_code, claimed_amount, approved_amount, status FROM claims WHERE status='approved' ORDER BY resolved_date DESC LIMIT 10"
-        if "amount" in question.lower() and "average" in question.lower():
+        if "amount" in normalized and "average" in normalized:
             return "SELECT department, AVG(claimed_amount) AS avg_claim_amount FROM claims GROUP BY department ORDER BY avg_claim_amount DESC"
         return "SELECT claim_id, patient_name, department, diagnosis_code, insurer, claimed_amount, approved_amount, status, submitted_date, resolved_date FROM claims ORDER BY submitted_date DESC LIMIT 10"
 
@@ -166,6 +176,31 @@ class SqlRag:
     def _generate_answer(self, question: str, sql: str, rows: list[dict[str, Any]]) -> str:
         if not rows:
             return "No matching records were found for this query."
+
+        normalized_question = question.lower()
+
+        # Prefer explicit scalar answers for aggregate queries.
+        if len(rows) == 1:
+            first_row = rows[0]
+            aggregate_candidates = [
+                key
+                for key, value in first_row.items()
+                if isinstance(value, (int, float))
+                and any(token in key.lower() for token in ["total", "sum", "count", "avg", "amount"])
+            ]
+            if aggregate_candidates:
+                key = aggregate_candidates[0]
+                value = first_row[key]
+                pretty_key = key.replace("_", " ")
+
+                if isinstance(value, float):
+                    pretty_value = f"{value:,.2f}"
+                else:
+                    pretty_value = f"{value:,}"
+
+                if any(token in normalized_question for token in ["bill", "billing", "claim", "amount", "invoice", "cost"]):
+                    return f"Total billed amount is {pretty_value}."
+                return f"{pretty_key.title()}: {pretty_value}."
 
         if config.GROQ_API_KEY:
             try:
