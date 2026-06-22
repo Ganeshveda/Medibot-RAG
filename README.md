@@ -1,26 +1,24 @@
-# 🏥 MediBot-RAG
+# 🏥 MediBot
 
-A production-oriented, role-aware medical knowledge assistant for healthcare organizations. MediBot combines **Hybrid RAG** (dense + sparse retrieval), **cross-encoder reranking**, and **SQL-RAG** with strict **RBAC enforcement at the retrieval layer**.
+A production-grade medical knowledge assistant for healthcare organizations. MediBot combines **Hybrid RAG** (dense + sparse retrieval) and **cross-encoder reranking** to deliver accurate, context-aware answers from your medical documentation.
 
 > **Repository:** `Ganeshveda/Medibot-RAG`  
-> **Primary goal:** Secure, cited, role-scoped answers over internal documents and operational data.
+> **Primary goal:** Secure, verified answers over internal medical documents and operational data.
 
 ---
 
 ## ✨ Key Features
 
-- **Role-Based Access Control (RBAC)** across the stack
-  - Enforced at **Qdrant metadata filter** level (`access_roles`), so unauthorized chunks are never retrieved.
 - **Hybrid Retrieval Pipeline**
-  - Dense semantic search + sparse BM25 in a single vector DB workflow.
+  - Dense semantic search + sparse BM25 for comprehensive context understanding.
 - **Cross-Encoder Reranking**
-  - Reorders initial candidates and passes only top-ranked context to the LLM.
-- **SQL-RAG for Analytics**
-  - NL → SQL → execution on `mediassist.db` → NL answer.
+  - Intelligent ranking ensures only the most relevant context reaches the LLM.
+- **Source Citation**
+  - Every answer includes linked sources with document references and section details.
 - **FastAPI Backend**
-  - Auth, routing, role-aware retrieval, and structured response contracts.
+  - High-performance REST API with structured response contracts.
 - **Next.js Frontend**
-  - Login, role badges, collection visibility, source citations, and clear RBAC refusal UX.
+  - Modern, professional UI with real-time chat, source viewing, and responsive design.
 
 ---
 
@@ -28,21 +26,14 @@ A production-oriented, role-aware medical knowledge assistant for healthcare org
 
 ```mermaid
 flowchart TD
-    U[User Login] --> A[Auth + Role Extraction]
-    A --> B[Query Intent Classifier]
-
-    B -->|Analytical query| C{Role allowed for SQL-RAG?}
-    C -->|Yes| D[SQL-RAG: NL -> SQL -> Execute -> NL]
-    C -->|No| E[RBAC Refusal]
-
-    B -->|Knowledge query| F[Qdrant Hybrid Search\nDense + BM25]
-    A --> G[RBAC Filter Builder\naccess_roles]
-    G --> F
-    F --> H[Top-K Candidates]
-    H --> I[Cross-Encoder Reranker]
-    I --> J[Top-N Context]
-    J --> K[LLM Generation]
-    K --> L[Answer + Citations + Retrieval Type]
+    U[User Login] --> A[Auth]
+    A --> B[Query Processing]
+    B --> C[Qdrant Hybrid Search\nDense + BM25]
+    C --> D[Top-K Candidates]
+    D --> E[Cross-Encoder Reranker]
+    E --> F[Top-N Context]
+    F --> G[LLM Generation]
+    G --> H[Answer + Source Citations]
 ```
 
 ---
@@ -56,25 +47,6 @@ flowchart TD
 | `billing.ravi` | `billing_executive` | `billing_executive` |
 | `tech.anand` | `technician` | `technician` |
 | `admin.sys` | `admin` | `admin` |
-
----
-
-## 🔐 Access Model
-
-### Collection Access Matrix
-
-| Collection | doctor | nurse | billing_executive | technician | admin |
-|---|---:|---:|---:|---:|---:|
-| general | ✅ | ✅ | ✅ | ✅ | ✅ |
-| clinical | ✅ | ❌ | ❌ | ❌ | ✅ |
-| nursing | ✅ | ✅ | ❌ | ❌ | ✅ |
-| billing | ❌ | ❌ | ✅ | ❌ | ✅ |
-| equipment | ❌ | ❌ | ❌ | ✅ | ✅ |
-
-### SQL-RAG Access
-
-- ✅ `billing_executive`, `admin`
-- ❌ all other roles
 
 ---
 

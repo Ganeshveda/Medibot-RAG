@@ -162,9 +162,9 @@ export default function Home() {
         <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-4 py-10">
           <div className="w-full rounded-[32px] border border-white/60 bg-white/80 p-8 shadow-glass backdrop-blur-xl">
             <div className="mb-8 text-center">
-              <p className="text-sm uppercase tracking-[0.35em] text-medibot-700">MediBot</p>
-              <h1 className="mt-4 text-4xl font-semibold text-slate-900">Clinical AI Concierge</h1>
-              <p className="mt-2 text-slate-600">Login with a demo role to try RBAC-aware retrieval and SQL analytics.</p>
+              <p className="text-sm uppercase tracking-[0.35em] text-medibot-700">MediGuide</p>
+              <h1 className="mt-4 text-4xl font-semibold text-slate-900">MediGuide</h1>
+              <p className="mt-2 text-slate-600">Experience intelligent medical document retrieval powered by AI.</p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -196,14 +196,12 @@ export default function Home() {
       <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6 sm:px-6">
         <header className="mb-6 flex flex-col gap-4 rounded-[32px] border border-slate-800 bg-slate-900/90 p-5 shadow-glass backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.35em] text-medibot-300">MediBot</p>
+            <p className="text-sm uppercase tracking-[0.35em] text-medibot-300">Medibot</p>
             <h1 className="mt-2 text-3xl font-semibold">Healthcare AI Assistant</h1>
-            <p className="mt-1 text-sm text-slate-400">Role-based access, citation-aware answers, and SQL analytics.</p>
           </div>
           <div className="flex items-center gap-3 text-sm">
-            <div className="rounded-3xl bg-slate-800 px-4 py-2 text-slate-200 shadow-inner">
-              <span className="block text-xs uppercase tracking-[0.3em] text-slate-500">Role</span>
-              <span className="font-semibold">{roleLabel}</span>
+            <div className="rounded-full bg-medibot-500/20 px-4 py-2 text-medibot-100 font-semibold">
+              {roleLabel}
             </div>
             <button
               onClick={handleLogout}
@@ -214,42 +212,24 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="grid flex-1 gap-6 xl:grid-cols-[320px_1fr]">
-          <aside className="rounded-[32px] border border-slate-800 bg-slate-900/80 p-6 shadow-glass backdrop-blur-xl">
-            <p className="text-sm uppercase tracking-[0.35em] text-medibot-300">Welcome, {session.username}</p>
-            <h2 className="mt-3 text-xl font-semibold">Accessible Collections</h2>
-            <div className="mt-4 flex flex-wrap gap-3">
-              {collections.length > 0 ? (
-                collections.map((collection) => (
-                  <span key={collection} className="rounded-2xl bg-slate-800 px-3 py-2 text-sm text-slate-200">
-                    {collection}
-                  </span>
-                ))
-              ) : (
-                <span className="rounded-2xl bg-slate-800 px-3 py-2 text-sm text-slate-400">No collections loaded</span>
-              )}
-            </div>
-            <div className="mt-6 rounded-3xl border border-slate-800 bg-slate-950/70 p-4 text-sm leading-6 text-slate-400">
-              <p className="font-semibold text-slate-100">Tip</p>
-              <p>Try billing questions with billing_executive or admin, and clinical questions with doctor/nurse.</p>
-            </div>
-          </aside>
-
-          <section className="flex min-h-[60vh] flex-col rounded-[32px] border border-slate-800 bg-slate-900/80 p-6 shadow-glass backdrop-blur-xl">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm uppercase tracking-[0.35em] text-medibot-300">Conversation</p>
-                <h2 className="text-2xl font-semibold">Ask MediBot anything</h2>
-              </div>
-              <div className="rounded-3xl bg-slate-800 px-4 py-2 text-sm text-slate-200">
-                {messages.length} messages
-              </div>
+        <div className="grid flex-1 gap-6">
+          <section className="flex min-h-[60vh] flex-col rounded-[32px] border border-slate-800 bg-slate-900/80 p-8 shadow-glass backdrop-blur-xl">
+            <div className="mb-6">
+              <p className="text-sm uppercase tracking-[0.35em] text-medibot-300">Chat Interface</p>
+              <h2 className="mt-2 text-3xl font-semibold">MediGuide</h2>
+              <p className="mt-2 text-slate-400">Ask questions about your medical documents. Answers are powered by intelligent retrieval and verified sources.</p>
             </div>
 
-            <div className="mb-6 flex-1 space-y-4 overflow-y-auto rounded-3xl border border-slate-800 bg-slate-950/80 p-4">
+            <div className="mb-6 flex-1 space-y-4 overflow-y-auto rounded-3xl border border-slate-800 bg-slate-950/80 p-6">
               {messages.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-slate-700 bg-slate-900/70 p-8 text-center text-slate-400">
-                  Start with a question about claims, equipment maintenance, or clinical policies.
+                <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-700 bg-slate-900/50 p-12 text-center">
+                  <div className="rounded-full bg-medibot-500/10 p-4 mb-4">
+                    <svg className="w-8 h-8 text-medibot-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-slate-300 font-semibold mb-1">Ready to assist</p>
+                  <p className="text-sm text-slate-500">Ask questions about your medical documentation, claims, or operational procedures.</p>
                 </div>
               ) : (
                 messages.map((message) => (
@@ -263,26 +243,15 @@ export default function Home() {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-xs uppercase tracking-[0.35em] text-slate-400">
-                        {message.speaker === "user" ? "You" : message.warning ? "RBAC" : "MediBot"}
+                        {message.speaker === "user" ? "You" : message.warning ? "Notice" : "Assistant"}
                       </span>
-                      {message.retrievalType ? (
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] ${
-                            message.retrievalType === "sql_rag"
-                              ? "bg-amber-500/15 text-amber-200"
-                              : "bg-cyan-500/15 text-cyan-200"
-                          }`}
-                        >
-                          {message.retrievalType === "sql_rag" ? "SQL RAG" : "Hybrid RAG"}
-                        </span>
-                      ) : null}
                     </div>
                     <p className={`mt-3 whitespace-pre-wrap ${message.warning ? "text-amber-100" : "text-slate-100"}`}>
                       {message.text}
                     </p>
                     {message.sources && message.sources.length > 0 ? (
-                      <details className="mt-4 rounded-3xl bg-slate-950/90 p-4 text-sm text-slate-300">
-                        <summary className="cursor-pointer font-semibold text-slate-100">Source citations</summary>
+                      <details className="mt-4 rounded-2xl bg-slate-950/90 p-4 text-sm text-slate-300">
+                        <summary className="cursor-pointer font-semibold text-slate-100 flex items-center gap-2"><span>📚</span> Source references</summary>
                         <div className="mt-3 space-y-3">
                           {message.sources.map((source, index) => (
                             <div key={`${message.id}-source-${index}`} className="rounded-2xl border border-slate-800 bg-slate-900/90 p-3">

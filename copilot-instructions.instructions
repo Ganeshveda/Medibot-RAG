@@ -1,0 +1,7 @@
+
+### Response Format Expectations
+When working with Copilot, request only what you need:
+- **Code Only**: Don't ask for explanations alongside code
+- **Quick Summaries**: One-liner summaries of changes, not walkthroughs
+- **No Reasoning**: Skip "Here's why I made this change..." type responses
+- **Just the Code**: Let the code speak for itself
